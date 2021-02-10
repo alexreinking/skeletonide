@@ -7,6 +7,8 @@ public:
     Input<Buffer<uint8_t>> input{"input", 2};
     Output<Buffer<uint8_t>> skel2{"skel2", 2};
 
+    Var x, y, k, c, i, block, thread, x0, y0, xi, yi;
+
     void generate() {
         Expr W = input.width();
         Expr H = input.height();
@@ -17,7 +19,6 @@ public:
         Buffer<int> n_x_idx_buf(n_x_idx);
         Buffer<int> n_y_idx_buf(n_y_idx);
 
-        Var x, y, k;
         Func in_bounded = BoundaryConditions::repeat_edge(input);
 
         // fn to get the nth neighbours  of a pixel
@@ -45,7 +46,6 @@ public:
         skel1(x, y) = cast<uint8_t>(select(fst_cnd, 255, in_bounded(x, y)));
         //    skel1.compute_root().vectorize(x, 8).parallel(y);
 
-        Var c, i, block, thread, x0, y0, xi, yi;
         skel1.compute_root().gpu_tile(x, y, x0, y0, xi, yi, 8, 8);
 
         // step-2 of Zhang-Suen method
@@ -71,6 +71,9 @@ public:
                  nbr2(x, y, 2) * nbr2(x, y, 4) * nbr2(x, y, 6) == 0);
 
         skel2(x, y) = cast<uint8_t>(select(snd_cnd, 255, skel1(x, y)));
+    }
+
+    void schedule() {
         //    skel2.vectorize(x, 8).parallel(y);
         skel2.gpu_tile(x, y, x0, y0, xi, yi, 8, 8);
     }

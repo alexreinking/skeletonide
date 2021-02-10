@@ -1,18 +1,22 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 project(skeletonide)
-include_directories(include/third_party)
-add_executable(skelgen src/pipeline.cpp)
-target_link_libraries(skelgen Halide pthread dl png16 jpeg)
-add_custom_command(
-        TARGET skelgen
-        COMMAND skelgen
-)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+find_package(Halide REQUIRED)
+
+add_executable(skeletongen src/pipeline.cpp)
+target_link_libraries(skeletongen PRIVATE Halide::Generator)
+
+if (WIN32)
+    set(targets cmake-d3d12compute cmake-cuda cmake-opencl)
+elseif (APPLE)
+    set(targets cmake-metal)
+else ()
+    set(targets cmake-cuda cmake-opencl)
+endif ()
+
+add_halide_library(skeletonide FROM skeletongen
+                   FUNCTION_NAME skel
+                   TARGETS ${targets})
+
 add_executable(spook spook.cpp)
-add_dependencies(spook skelgen)
-link_directories(${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(spook ${CMAKE_CURRENT_BINARY_DIR}/skeletonide.a Halide pthread dl png16 jpeg )
-add_custom_command(
-        TARGET spook
-        COMMAND mv spook ${CMAKE_HOME_DIRECTORY}
-)
+target_link_libraries(spook PRIVATE skeletonide Halide::ImageIO)

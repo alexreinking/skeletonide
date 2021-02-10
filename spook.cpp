@@ -21,16 +21,16 @@ int main(int argc, char **argv) {
 
     Runtime::Buffer<uint8_t> input = Tools::load_and_convert_image(argv[1]);
     Runtime::Buffer<uint8_t> output(input.width(), input.height());
-    auto orig_input = input;
+    auto orig_input = input.copy();
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
     for (int j = 0; j < ITERS; j++) {
-        for (int i = 0; i < 29; i++) {// TODO remove this hardcoded limit.
+        for (int i = 0; i < 30; i++) {// TODO remove this hardcoded limit.
             skel(input, output);
-            input = output;
+            std::swap(input, output);
         }
-        input = orig_input;
+        input = orig_input.copy();
     }
 
     auto t2 = std::chrono::high_resolution_clock::now();
